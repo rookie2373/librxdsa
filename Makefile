@@ -1,57 +1,82 @@
+# Makefile for rxdsa C Library
+# Builds static library, examples, and tests from src/, examples/, and tests/ directories.
+# Supports: make all, make clean, make examples (build+run), make tests (build+run)
+
 # Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra -Iinclude -g
+CC := gcc
+CFLAGS := -Wall -Wextra -Iinclude -g -std=c11 -O2
+ARFLAGS := rcs
 
-# Source and object files
-SRC = src/helloworld.c
-OBJ = $(SRC:.c=.o)
+# Source and object files (dynamic via wildcard)
+SRC := $(wildcard src/*.c)
+OBJ := $(patsubst src/%.c,src/%.o,$(SRC))
+LIB := librxdsa.a
 
-# Target library and executables
-LIB = librxdsa.a
-EXAMPLES = examples/library_prompt
-TESTS = tests/test_hello_world
+# Examples and tests (dynamic via wildcard)
+EXAMPLES_SRC := $(wildcard examples/*.c)
+EXAMPLES := $(patsubst examples/%.c,examples/%,$(EXAMPLES_SRC))
+TESTS_SRC := $(wildcard tests/*.c)
+TESTS := $(patsubst tests/%.c,tests/%,$(TESTS_SRC))
 
-# Default target: build library, examples and tests
+# Default target: build everything
+.PHONY: all
 all: $(LIB) $(EXAMPLES) $(TESTS)
+	@echo "✓ Build complete: $(LIB), $(words $(EXAMPLES)) examples, $(words $(TESTS)) tests"
 
-# Build static library from object files
+# Build static library
 $(LIB): $(OBJ)
-	ar rcs $@ $^
+	@echo "📦 Archiving $(words $(OBJ)) objects into $@"
+	$(AR) $(ARFLAGS) $@ $^
 
-# Compile source files
-%.o: %.c
+# Compile library sources
+src/%.o: src/%.c
+	@echo "🔨 Compiling $< → $@"
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Build example executables
+# Build examples (link against lib)
 examples/%: examples/%.c $(LIB)
+	@echo "🏗️  Linking example $< → $@"
 	$(CC) $(CFLAGS) $< -L. -lrxdsa -o $@
 
-# Build test executables
+# Build tests (link against lib)
 tests/%: tests/%.c $(LIB)
+	@echo "🧪 Linking test $< → $@"
 	$(CC) $(CFLAGS) $< -L. -lrxdsa -o $@
 
-# Clean build artifacts
-clean:
-	rm -f src/*.o $(LIB) 
-	rm -rf examples/*.o
-	rm -rf examples/*.dSYM
-	rm -rf tests/*.dSYM
-	rm -rf tests/*.o
-	find examples -type f ! -name '*.c' -exec rm -f {} +
-	find tests -type f ! -name '*.c' -exec rm -f {} +
-
-.PHONY: all clean
-
-# Run all examples
+# Run all examples (build if needed)
+.PHONY: examples
 examples: $(EXAMPLES)
-	@for example in $(EXAMPLES); do \
-		echo "Running $$example..."; \
-		./$$example; \
+	@echo "▶️  Running $(words $(EXAMPLES)) examples:"
+	@for ex in $(EXAMPLES); do \
+		echo "  $$ex:"; \
+		./$$ex || echo "  ⚠️  $$ex failed"; \
 	done
 
-# Run all tests
+# Run all tests (build if needed, fail fast)
+.PHONY: tests
 tests: $(TESTS)
-	@for test in $(TESTS); do \
-		echo "Running $$test..."; \
-		./$$test || exit 1; \
+	@echo "🧪 Running $(words $(TESTS)) tests:"
+	@for t in $(TESTS); do \
+		echo "  $$t:"; \
+		./$$t || (echo "  ❌ $$t FAILED"; exit 1); \
 	done
+
+# Clean all artifacts
+.PHONY: clean
+clean:
+	@echo "🧹 Cleaning build artifacts..."
+	rm -f src/*.o $(LIB)
+	rm -f $(EXAMPLES) $(TESTS)
+	rm -rf examples/*.o examples/*.dSYM tests/*.o tests/*.dSYM
+	@echo "✓ Clean complete"
+
+# Help
+.PHONY: help
+help:
+	@echo "Available targets:"
+	@echo "  all       - Build library, examples, tests"
+	@echo "  examples  - Build and run all examples"
+	@echo "  tests     - Build and run all tests"
+	@echo "  clean     - Remove build artifacts"
+	@echo "  help      - Show this help"

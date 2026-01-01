@@ -55,4 +55,5 @@ dkms.conf
 *.dwo
 
 # macOS
-.DS_Store 
+.DS_Store
+local
