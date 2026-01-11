@@ -1,4 +1,5 @@
 /**
+  * @test Hello world test
   * @file test_hello_world.c
   * @brief Test file for hello_world API. 
   * 

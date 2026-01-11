@@ -57,3 +57,7 @@ dkms.conf
 # macOS
 .DS_Store
 local
+
+# Doxygen
+docs/html
+docs/latex
