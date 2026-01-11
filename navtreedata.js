@@ -26,7 +26,7 @@ var NAVTREE =
 [
   [ "librxdsa", "index.html", [
     [ "pag_example", "da/de8/pag_example.html", null ],
-    [ "librxdsa", "d0/d30/md_README.html", null ],
+    [ "rxDSA", "d0/d30/md_README.html", null ],
     [ "Bug List", "de/da5/bug.html", null ],
     [ "Test List", "d4/df6/test.html", null ],
     [ "Modules", "modules.html", "modules" ],
