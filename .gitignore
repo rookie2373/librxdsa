@@ -59,6 +59,5 @@ dkms.conf
 local
 
 # Doxygen
-docs/
-!docs/Doxyfile
-!docs/theme/
+docs/html
+docs/latex
