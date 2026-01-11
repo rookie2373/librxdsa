@@ -69,7 +69,15 @@ clean:
 	rm -f src/*.o $(LIB)
 	rm -f $(EXAMPLES) $(TESTS)
 	rm -rf examples/*.o examples/*.dSYM tests/*.o tests/*.dSYM
+	rm -rf docs/html
+	rm -rf docs/latex
 	@echo "✓ Clean complete"
+
+# Doxygen document generation
+.PHONY: docs
+docs:
+	@echo "Building documentation..."
+	cd docs && doxygen Doxyfile
 
 # Help
 .PHONY: help

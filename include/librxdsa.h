@@ -1,5 +1,5 @@
 /**
-  * @file librxdsa.h
+  * @file main.h
   * @brief Parent / Super include file for accessing all rxDSA APIs
   * 
   * This is a public include file.
