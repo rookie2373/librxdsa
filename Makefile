@@ -77,7 +77,7 @@ clean:
 .PHONY: docs
 docs:
 	@echo "Building documentation..."
-	cd docs && doxygen Doxyfile
+	doxygen Doxyfile
 
 # Help
 .PHONY: help
