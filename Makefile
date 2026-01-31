@@ -38,6 +38,7 @@ src/%.o: src/%.c
 examples/%: examples/%.c $(LIB)
 	@echo "🏗️  Linking example $< → $@"
 	$(CC) $(CFLAGS) $< -L. -lrxdsa -o $@
+	./$@
 
 # Build tests (link against lib)
 tests/%: tests/%.c $(LIB)
