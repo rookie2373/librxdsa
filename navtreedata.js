@@ -24,11 +24,9 @@
 */
 var NAVTREE =
 [
-  [ "librxdsa", "index.html", [
+  [ "rxDSA", "index.html", [
     [ "pag_example", "da/de8/pag_example.html", null ],
-    [ "rxDSA", "d0/d30/md_README.html", null ],
     [ "Bug List", "de/da5/bug.html", null ],
-    [ "Test List", "d4/df6/test.html", null ],
     [ "Modules", "modules.html", "modules" ],
     [ "Namespaces", "namespaces.html", [
       [ "Namespace List", "namespaces.html", "namespaces_dup" ],
@@ -70,7 +68,7 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"dir_d44c64559bbebec7f509842c48db8b23.html"
+"de/d73/classQTstyle__Test.html#a8840748753118dd468e8368a28e49c62"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

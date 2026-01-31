@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['max_0',['MAX',['../df/d67/define_8h.html#aacc3ee1a7f283f8ef65cea31f4436a95',1,'MAX():&#160;define.h'],['../d3/dd6/structcmd_8h.html#afa99ec4acc4ecb2dc3c2d05da15d0e3f',1,'MAX():&#160;structcmd.h']]],
-  ['min_1',['MIN',['../df/d67/define_8h.html#a74e75242132eaabbc1c512488a135926',1,'define.h']]]
+  ['in_0',['IN',['../db/dc7/one__word__per__line_8c.html#ac2bbd6d630a06a980d9a92ddb9a49928',1,'IN():&#160;one_word_per_line.c'],['../d8/df5/word__count_8c.html#ac2bbd6d630a06a980d9a92ddb9a49928',1,'IN():&#160;word_count.c']]]
 ];
