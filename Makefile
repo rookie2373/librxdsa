@@ -1,24 +1,29 @@
 # Makefile for rxdsa C Library
-# Builds static library, examples, and tests from src/, examples/, and tests/ directories.
-# Supports: make all, make clean, make examples (build+run), make tests (build+run)
 
 # Compiler and flags
-CC := gcc
-CFLAGS := -Wall -Wextra -Iinclude -g -std=c11 -O2
-ARFLAGS := rcs
+CC       := gcc
+CFLAGS   := -Wall -Wextra -Iinclude -g -std=c11 -O2
+ARFLAGS  := rcs
 
-# Source and object files (dynamic via wildcard)
-SRC := $(wildcard src/*.c)
-OBJ := $(patsubst src/%.c,src/%.o,$(SRC))
-LIB := librxdsa.a
+# Source and object files
+SRC      := $(wildcard src/*.c)
+OBJ      := $(SRC:.c=.o)
+LIB      := librxdsa.a
 
-# Examples and tests (dynamic via wildcard)
+# Build examples
 EXAMPLES_SRC := $(wildcard examples/*.c)
-EXAMPLES := $(patsubst examples/%.c,examples/%,$(EXAMPLES_SRC))
-TESTS_SRC := $(wildcard tests/*.c)
-TESTS := $(patsubst tests/%.c,tests/%,$(TESTS_SRC))
+EXAMPLES     := $(EXAMPLES_SRC:.c=)
 
-# Default target: build everything
+# Build tests
+TESTS_SRC    := $(wildcard tests/*.c)
+TESTS        := $(TESTS_SRC:.c=)
+
+# Build crograms
+CROGRAMS_SRC := $(wildcard crograms/*.c)
+CROGRAMS     := $(CROGRAMS_SRC:.c=)
+
+# --- Primary Targets ---
+
 .PHONY: all
 all: $(LIB) $(EXAMPLES) $(TESTS)
 	@echo "✓ Build complete: $(LIB), $(words $(EXAMPLES)) examples, $(words $(TESTS)) tests"
@@ -29,6 +34,7 @@ $(LIB): $(OBJ)
 	$(AR) $(ARFLAGS) $@ $^
 
 # Compile library sources
+# Note: Added dependency on headers by convention or use -MMD for auto-deps
 src/%.o: src/%.c
 	@echo "🔨 Compiling $< → $@"
 	@mkdir -p $(dir $@)
@@ -36,56 +42,70 @@ src/%.o: src/%.c
 
 # Build examples (link against lib)
 examples/%: examples/%.c $(LIB)
-	@echo "🏗️  Linking example $< → $@"
+	@echo "🏗️  Linking example $<"
 	$(CC) $(CFLAGS) $< -L. -lrxdsa -o $@
-	./$@
 
 # Build tests (link against lib)
 tests/%: tests/%.c $(LIB)
-	@echo "🧪 Linking test $< → $@"
+	@echo "🧪 Linking test $<"
 	$(CC) $(CFLAGS) $< -L. -lrxdsa -o $@
 
-# Run all examples (build if needed)
+# --- Execution Targets ---
+
 .PHONY: examples
 examples: $(EXAMPLES)
 	@echo "▶️  Running $(words $(EXAMPLES)) examples:"
 	@for ex in $(EXAMPLES); do \
-		echo "  $$ex:"; \
+		echo "  Running $$ex..."; \
 		./$$ex || echo "  ⚠️  $$ex failed"; \
 	done
 
-# Run all tests (build if needed, fail fast)
 .PHONY: tests
 tests: $(TESTS)
 	@echo "🧪 Running $(words $(TESTS)) tests:"
 	@for t in $(TESTS); do \
-		echo "  $$t:"; \
-		./$$t || (echo "  ❌ $$t FAILED"; exit 1); \
+		echo "  Running $$t..."; \
+		./$$t && echo "  ✅ $$t PASSED" || (echo "  ❌ $$t FAILED"; exit 1); \
 	done
 
-# Clean all artifacts
+.PHONY: crograms
+crograms: $(CROGRAMS)
+	@echo "🧪 Running $(words $(CROGRAMS)) crograms:"
+	@for t in $(CROGRAMS); do \
+		echo "  Running $$t..."; \
+		./$$t && echo "  ✅ $$t PASSED" || (echo "  ❌ $$t FAILED"; exit 1); \
+	done
+
+.PHONY: docs
+docs:
+	@echo "📚 Generating documentation with Doxygen..."
+	doxygen Doxyfile
+	@echo "✓ Documentation generated in docs/html and docs/latex"
+
+examples/%.app: examples/%
+	@./$<
+
+tests/%.app: tests/%
+	@./$<
+
+crograms/%.app: crograms/%
+	@./$<
+
+# --- Maintenance ---
+
 .PHONY: clean
 clean:
 	@echo "🧹 Cleaning build artifacts..."
-	rm -f src/*.o $(LIB)
-	rm -f $(EXAMPLES) $(TESTS)
-	rm -rf examples/*.o examples/*.dSYM tests/*.o tests/*.dSYM
-	rm -rf docs/html
-	rm -rf docs/latex
+	rm -f src/*.o $(LIB) $(EXAMPLES) $(CROGRAMS)
+	rm -rf examples/*.dSYM tests/*.dSYM crograms/*.dSYM docs/html docs/latex
 	@echo "✓ Clean complete"
 
-# Doxygen document generation
-.PHONY: docs
-docs:
-	@echo "Building documentation..."
-	doxygen Doxyfile
-
-# Help
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  all       - Build library, examples, tests"
-	@echo "  examples  - Build and run all examples"
-	@echo "  tests     - Build and run all tests"
-	@echo "  clean     - Remove build artifacts"
-	@echo "  help      - Show this help"
+	@echo "  all       - Build library, examples, and tests"
+	@echo "  examples  - Build and run all example programs"
+	@echo "  tests     - Build and run all unit tests"
+	@echo "  clean     - Remove all generated files"
+	@echo "  docs      - Generate documentation using Doxygen"
+	@echo "  help      - Show this help message"
