@@ -1,4 +1,5 @@
 var dir_68267d1309a1af8e8297ef4c3efbcdba =
 [
-    [ "hello_world.c", "src_2hello__world_8c_source.html", null ]
+    [ "hello_world.c", "hello__world_8c_source.html", null ],
+    [ "morse_code.c", "morse__code_8c_source.html", null ]
 ];
