@@ -1,17 +1,16 @@
 #include <stdio.h>
-#define L_EOF 108
 
 int main() {
     int c, nl = 0;
 
-    while ((c = getchar()) != L_EOF)
+    while ((c = getchar()) != EOF)
         if (c == '\n')
             ++nl;
 
     printf("%d\n", nl);
 
     // ASCII representation
-    printf("%c\n",L_EOF);
+    printf("%c\n",EOF);
 
     // Unicode representation
     int newline = '\n';
