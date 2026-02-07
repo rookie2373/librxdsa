@@ -1,1 +1,0 @@
-int external_var = 69;

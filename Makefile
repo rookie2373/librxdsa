@@ -18,6 +18,10 @@ EXAMPLES     := $(EXAMPLES_SRC:.c=)
 TESTS_SRC    := $(wildcard tests/*.c)
 TESTS        := $(TESTS_SRC:.c=)
 
+# Build crograms
+CROGRAMS_SRC := $(wildcard crograms/*.c)
+CROGRAMS     := $(CROGRAMS_SRC:.c=)
+
 # --- Primary Targets ---
 
 .PHONY: all
@@ -64,6 +68,14 @@ tests: $(TESTS)
 		./$$t && echo "  ✅ $$t PASSED" || (echo "  ❌ $$t FAILED"; exit 1); \
 	done
 
+.PHONY: crograms
+crograms: $(CROGRAMS)
+	@echo "🧪 Running $(words $(CROGRAMS)) crograms:"
+	@for t in $(CROGRAMS); do \
+		echo "  Running $$t..."; \
+		./$$t && echo "  ✅ $$t PASSED" || (echo "  ❌ $$t FAILED"; exit 1); \
+	done
+
 .PHONY: docs
 docs:
 	@echo "📚 Generating documentation with Doxygen..."
@@ -76,13 +88,16 @@ examples/%.app: examples/%
 tests/%.app: tests/%
 	@./$<
 
+crograms/%.app: crograms/%
+	@./$<
+
 # --- Maintenance ---
 
 .PHONY: clean
 clean:
 	@echo "🧹 Cleaning build artifacts..."
-	rm -f src/*.o $(LIB) $(EXAMPLES) $(TESTS)
-	rm -rf examples/*.dSYM tests/*.dSYM docs/html docs/latex
+	rm -f src/*.o $(LIB) $(EXAMPLES) $(CROGRAMS)
+	rm -rf examples/*.dSYM tests/*.dSYM crograms/*.dSYM docs/html docs/latex
 	@echo "✓ Clean complete"
 
 .PHONY: help
