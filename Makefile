@@ -16,6 +16,9 @@ EXAMPLES     := $(EXAMPLES_SRC:.c=)
 TESTS_SRC    := $(wildcard tests/*.c)
 TESTS        := $(TESTS_SRC:.c=)
 
+PROGRAMS_SRC := $(wildcard crograms/*.c)
+PROGRAMS     := $(PROGRAMS_SRC:.c=)
+
 # === BUILD TARGETS ===
 
 .PHONY: all
@@ -108,6 +111,17 @@ ts\:%: $(LIB)
 	@echo "🧪 Running test: $*"
 	@./tests/$* && echo "✅ $* PASSED" || (echo "❌ $* FAILED"; exit 1)
 
+app\:%: $(LIB)
+	@if [ ! -f "crograms/$*.c" ]; then \
+		echo "❌ Program 'crograms/$*.c' not found"; \
+		exit 1; \
+	fi
+	@echo "🏗️  Building program: $*"
+	@$(CC) $(CFLAGS) crograms/$*.c -L. -lrxdsa -o crograms/$*
+	@echo "🧪 Running program: $*"
+	@echo "-------------------------------------------------------------------"
+	@./crograms/$* && echo "\n-------------------------------------------------------------------\n✅ $* PASSED" || (echo "❌ $* FAILED"; exit 1)
+
 # === MAINTENANCE ===
 
 .PHONY: clean
@@ -119,8 +133,8 @@ clean-build:
 	@echo "🧹 Cleaning build artifacts..."
 	rm -f src/*.o
 	rm -f $(LIB)
-	rm -f $(EXAMPLES) $(TESTS)
-	rm -rf examples/*.dSYM tests/*.dSYM
+	rm -f $(EXAMPLES) $(TESTS) $(PROGRAMS)
+	rm -rf examples/*.dSYM tests/*.dSYM crograms/*.dSYM
 	@echo "✓ Build artifacts cleaned"
 
 .PHONY: clean-docs
