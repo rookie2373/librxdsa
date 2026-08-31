@@ -16,13 +16,10 @@ EXAMPLES     := $(EXAMPLES_SRC:.c=)
 TESTS_SRC    := $(wildcard tests/*.c)
 TESTS        := $(TESTS_SRC:.c=)
 
-PROGRAMS_SRC := $(wildcard crograms/*.c)
-PROGRAMS     := $(PROGRAMS_SRC:.c=)
-
 # === BUILD TARGETS ===
 
-.PHONY: all
-all: $(LIB) $(TESTS)
+.PHONY: lib
+lib: $(LIB) $(TESTS)
 	@echo "✓ Build complete: $(LIB), $(words $(TESTS)) tests"
 
 $(LIB): $(OBJ)
@@ -56,40 +53,6 @@ docs:
 
 # === RUN SPECIFIC TARGETS ===
 
-.PHONY: x
-x: $(LIB)
-	@if [ -z "$(EXAMPLE)" ] && [ -z "$(TEST)" ]; then \
-		echo "Usage:"; \
-		echo "  make ex:<name>  - Run a specific example"; \
-		echo "  make t:<name>   - Run a specific test"; \
-		echo ""; \
-		echo "Available examples:"; \
-		ls -1 examples/*.c 2>/dev/null | sed 's|examples/||g' | sed 's|\.c||g' | sed 's|^|  - |'; \
-		echo ""; \
-		echo "Available tests:"; \
-		ls -1 tests/*.c 2>/dev/null | sed 's|tests/||g' | sed 's|\.c||g' | sed 's|^|  - |'; \
-		exit 1; \
-	fi
-	@if [ ! -z "$(EXAMPLE)" ]; then \
-		if [ ! -f "examples/$(EXAMPLE).c" ]; then \
-			echo "❌ Example 'examples/$(EXAMPLE).c' not found"; \
-			exit 1; \
-		fi; \
-		echo "🏗️  Building example: $(EXAMPLE)"; \
-		$(CC) $(CFLAGS) examples/$(EXAMPLE).c -L. -lrxdsa -o examples/$(EXAMPLE); \
-		echo "▶️  Running example: $(EXAMPLE)"; \
-		./examples/$(EXAMPLE); \
-	elif [ ! -z "$(TEST)" ]; then \
-		if [ ! -f "tests/$(TEST).c" ]; then \
-			echo "❌ Test 'tests/$(TEST).c' not found"; \
-			exit 1; \
-		fi; \
-		echo "🏗️  Building test: $(TEST)"; \
-		$(CC) $(CFLAGS) tests/$(TEST).c -L. -lrxdsa -o tests/$(TEST); \
-		echo "🧪 Running test: $(TEST)"; \
-		./tests/$(TEST) && echo "✅ $(TEST) PASSED" || (echo "❌ $(TEST) FAILED"; exit 1); \
-	fi
-
 # Shortcuts: make ex:name or make ts:name
 ex\:%: $(LIB)
 	@if [ ! -f "examples/$*.c" ]; then \
@@ -111,17 +74,6 @@ ts\:%: $(LIB)
 	@echo "🧪 Running test: $*"
 	@./tests/$* && echo "✅ $* PASSED" || (echo "❌ $* FAILED"; exit 1)
 
-app\:%: $(LIB)
-	@if [ ! -f "crograms/$*.c" ]; then \
-		echo "❌ Program 'crograms/$*.c' not found"; \
-		exit 1; \
-	fi
-	@echo "🏗️  Building program: $*"
-	@$(CC) $(CFLAGS) crograms/$*.c -L. -lrxdsa -o crograms/$*
-	@echo "🧪 Running program: $*"
-	@echo "-------------------------------------------------------------------"
-	@./crograms/$* && echo "\n-------------------------------------------------------------------\n✅ $* PASSED" || (echo "❌ $* FAILED"; exit 1)
-
 # === MAINTENANCE ===
 
 .PHONY: clean
@@ -133,8 +85,8 @@ clean-build:
 	@echo "🧹 Cleaning build artifacts..."
 	rm -f src/*.o
 	rm -f $(LIB)
-	rm -f $(EXAMPLES) $(TESTS) $(PROGRAMS)
-	rm -rf examples/*.dSYM tests/*.dSYM crograms/*.dSYM
+	rm -f $(EXAMPLES) $(TESTS)
+	rm -rf examples/*.dSYM tests/*.dSYM
 	@echo "✓ Build artifacts cleaned"
 
 .PHONY: clean-docs
@@ -154,7 +106,7 @@ distclean: clean
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  all         - Build library, examples, and tests"
+	@echo "  lib         - Build library, examples, and tests"
 	@echo "  tests       - Build and run all unit tests"
 	@echo "  ex:<name>   - Build and run a specific example"
 	@echo "  ts:<name>   - Build and run a specific test"
