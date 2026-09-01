@@ -101,7 +101,7 @@ jobs:
       needs: [build, brew-release]
       runs-on: ubuntu-latest
       steps:
-        - name: Submit to Winget Community Repository
+        - name: Create release ${{ github.ref_name }}
           uses: vedantmgoyal2009/winget-releaser@v2
           with:
             package-identifier: rookie2373.librxdsa
