@@ -1,7 +1,7 @@
 # Makefile for rxdsa C Library
 
 # === CONFIGURATION ===
-CC       := gcc
+CC       ?= gcc
 CFLAGS   := -Wall -Wextra -Iinclude -g -std=c11 -O2
 ARFLAGS  := rcs
 
