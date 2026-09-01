@@ -7,6 +7,7 @@ on:
 
 jobs:
   release:
+    name: PROD pipeline ${{ github.ref_name }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
