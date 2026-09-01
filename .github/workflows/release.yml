@@ -104,8 +104,6 @@ jobs:
         - name: Create release ${{ github.ref_name }}
           uses: vedantmgoyal2009/winget-releaser@v2
           with:
-            package-identifier: rookie2373.librxdsa
-            
-            url: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/librxdsa-${{ github.ref_name }}.zip
-            
+            identifier: rookie2373.librxdsa
+            installers-regex: 'librxdsa-.*\.zip$'
             token: ${{ secrets.WINGET_DEPLOY_TOKEN }}
