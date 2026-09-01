@@ -1,0 +1,53 @@
+name: Homebrew deployment
+
+on:
+  push:
+    tags:
+      - '*.*.*' # Accept any three-segment tag; validate numeric semver inside the job.
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the source
+        id: checkout_source
+        uses: actions/checkout@v4
+
+      - name: Validate semver tag
+        id: validate_tag
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag ${GITHUB_REF_NAME} is not a valid version like 0.0.1"
+            exit 1
+          fi
+
+      - name: Build the archive
+        id: build_archive
+        run: |
+          git archive --format=tar.gz --prefix=${{ github.ref_name }}/ -o ${{ github.ref_name }}.tar.gz HEAD
+
+      - name: Create a release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ github.ref_name }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to brew
+        id: deploy_brew
+        run: |
+          VERSION="${{ github.ref_name }}"
+
+          URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/${VERSION}.tar.gz"
+          SHA256_HASH=$(sha256sum "${VERSION}.tar.gz" | awk '{ print $1 }')
+
+          echo "Triggering Homebrew update for version ${VERSION}"
+
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.HOMEBREW_DEPLOY_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository_owner }}/homebrew-librxdsa/dispatches" \
+            -d "{\"event_type\": \"update_formula\", \"client_payload\": {\"version\": \"${VERSION}\", \"url\": \"${URL}\", \"sha256\": \"${SHA256_HASH}\"}}"
