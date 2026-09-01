@@ -1,4 +1,4 @@
-name: Homebrew deployment
+name: Production Release
 
 on:
   push:
