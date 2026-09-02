@@ -26,7 +26,7 @@ jobs:
       - name: Build brew archive
         id: build_brew_archive
         run: |
-          git archive --format=tar.gz --prefix=${{ github.ref_name }}/ -o ${{ github.ref_name }}.tar.gz HEAD
+          git archive --format=tar.gz --prefix=librxdsa-${{ github.ref_name }}/ -o librxdsa-${{ github.ref_name }}.tar.gz HEAD
 
       - name: MinGW install
         id: mingw_install
@@ -54,12 +54,12 @@ jobs:
         with:
           name: release-artifacts
           path: |
-            ${{ github.ref_name }}.tar.gz
+            librxdsa-${{ github.ref_name }}.tar.gz
             librxdsa-${{ github.ref_name }}.zip
 
   brew-release:
     name: brew-release ${{ github.ref_name }}
-    needs: [build, debian-minimal-release]
+    needs: [build, debian-minimal-release, redhat-minimal-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -73,9 +73,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release-artifacts/${{ github.ref_name }}.tar.gz
+            release-artifacts/librxdsa-${{ github.ref_name }}.tar.gz
             release-artifacts/librxdsa-${{ github.ref_name }}.zip
-            debian-package/librxdsa_${{ github.ref_name }}_amd64.deb
+            debian-package/librxdsa-${{ github.ref_name }}-amd64.deb
+            redhat-package/librxdsa-${{ github.ref_name }}-1.x86_64.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -84,8 +85,8 @@ jobs:
         run: |
           VERSION="${{ needs.build.outputs.version }}"
 
-          URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/${VERSION}.tar.gz"
-          SHA256_HASH=$(sha256sum "release-artifacts/${VERSION}.tar.gz" | awk '{ print $1 }')
+          URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/librxdsa-${VERSION}.tar.gz"
+          SHA256_HASH=$(sha256sum "release-artifacts/librxdsa-${VERSION}.tar.gz" | awk '{ print $1 }')
 
           echo "Triggering Homebrew update for version ${VERSION}"
 
@@ -128,7 +129,7 @@ jobs:
           sed -i "s/pkgver=.*/pkgver=${VERSION}/g" PKGBUILD
           sed -i "s/pkgrel=.*/pkgrel=1/g" PKGBUILD
 
-          cp ../${VERSION}.tar.gz ./${VERSION}.tar.gz
+          cp ../release-artifacts/librxdsa-${VERSION}.tar.gz ./librxdsa-${VERSION}.tar.gz
 
           useradd -m builduser
           chown -R builduser:builduser .
@@ -197,8 +198,8 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
         run: |
-          tar -xzf ${VERSION}.tar.gz
-          cd ${VERSION}
+          tar -xzf librxdsa-${VERSION}.tar.gz
+          cd librxdsa-${VERSION}
           
           make clean-build
           make lib
@@ -208,8 +209,8 @@ jobs:
           mkdir -p debian_pkg/usr/lib
           mkdir -p debian_pkg/usr/include/rxdsa
 
-          cp ${VERSION}/librxdsa.a debian_pkg/usr/lib/
-          cp ${VERSION}/include/*.h debian_pkg/usr/include/rxdsa/
+          cp librxdsa-${VERSION}/librxdsa.a debian_pkg/usr/lib/
+          cp librxdsa-${VERSION}/include/*.h debian_pkg/usr/include/rxdsa/
 
           cat <<EOF > debian_pkg/DEBIAN/control
           Package: librxdsa
@@ -222,11 +223,86 @@ jobs:
           Description: Standalone and lightweight C algorithms library
           EOF
 
-          dpkg-deb --build debian_pkg "librxdsa_${VERSION}_amd64.deb"
+          dpkg-deb --build debian_pkg "librxdsa-${VERSION}-amd64.deb"
 
       - name: Upload debian package
         id: upload_debian_package
         uses: actions/upload-artifact@v4
         with:
           name: debian-package
-          path: librxdsa_${{ github.ref_name }}_amd64.deb
+          path: librxdsa-${{ github.ref_name }}-amd64.deb
+
+
+  redhat-minimal-release:
+    name: redhat-minimal-release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        id: download_build_artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+
+      - name: Install rpm build tools
+        id: install_rpm_build_tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Build rpm package
+        id: build_rpm_package
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir -p rpmbuild/SOURCES rpmbuild/SPECS rpmbuild/BUILD rpmbuild/RPMS rpmbuild/SRPMS
+          
+          cp release-artifacts/librxdsa-${VERSION}.tar.gz rpmbuild/SOURCES/
+          
+          cat <<EOF > rpmbuild/SPECS/librxdsa.spec
+          Name:           librxdsa
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        Standalone and lightweight C algorithms library
+          License:        GPLv3
+          URL:            https://github.com/rookie2373/librxdsa
+          Source0:        librxdsa-%{version}.tar.gz
+
+          %description
+          Standalone and lightweight C algorithms library.
+
+          %prep
+          %setup -q
+
+          %build
+          make clean-build
+          make lib
+
+          %install
+          rm -rf %{buildroot}
+          mkdir -p %{buildroot}/usr/lib
+          mkdir -p %{buildroot}/usr/include/rxdsa
+          cp librxdsa.a %{buildroot}/usr/lib/
+          cp include/*.h %{buildroot}/usr/include/rxdsa/
+
+          %files
+          %defattr(-,root,root,-)
+          /usr/lib/librxdsa.a
+          %dir /usr/include/rxdsa
+          /usr/include/rxdsa/*.h
+
+          %changelog
+          * Thu Sep 03 2026 Rushikesh Kundkar <rrkundkar777@gmail.com> - %{version}-1
+          - Automated native binary deployment release updates
+          EOF
+
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/librxdsa.spec
+
+          cp rpmbuild/RPMS/x86_64/librxdsa-${VERSION}-1*.rpm ./librxdsa-${VERSION}-1.x86_64.rpm
+
+      - name: Upload RedHat package
+        id: upload_redhat_package
+        uses: actions/upload-artifact@v4
+        with:
+          name: redhat-package
+          path: librxdsa-${{ github.ref_name }}-1.x86_64.rpm
