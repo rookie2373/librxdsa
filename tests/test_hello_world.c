@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +7,7 @@
 void hello_world();
 
 int main() {
-    const char* expected_output = "rxDSA 0.0.11 (0.0.11, Sep 1 2026, 00:12:13) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin\nVisit \"github.com/rookie2373\" for more information\n";
+    const char* expected_output = "rxDSA 0.0.12 (0.0.12, Sep 1 2026, 00:12:13) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin\nVisit \"github.com/rookie2373\" for more information\n";
 
     FILE* tmp = tmpfile();
     if (!tmp) {
