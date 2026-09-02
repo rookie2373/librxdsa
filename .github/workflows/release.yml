@@ -1,0 +1,269 @@
+name: Production Release
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: read
+
+env:
+  VERSION: ${{ github.ref_name }}
+  ARCHIVE: librxdsa-${{ github.ref_name }}.tar.gz
+
+jobs:
+  build:
+    name: build ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate_tag.outputs.version }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Validate tag
+        id: validate_tag
+        run: |
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag ${VERSION} is not a valid version like 0.0.1"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build source archive
+        run: |
+          git archive \
+            --format=tar.gz \
+            --prefix=librxdsa-${VERSION}/ \
+            --output="${ARCHIVE}" \
+            HEAD
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-archive
+          path: ${{ env.ARCHIVE }}
+
+  mingw-release:
+    name: mingw-release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install MinGW tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 zip
+
+      - name: Build MinGW package
+        run: |
+          make clean-build
+          make CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar lib
+          mkdir -p librxdsa-${VERSION}/lib librxdsa-${VERSION}/include
+          cp librxdsa.a librxdsa-${VERSION}/lib/
+          cp include/*.h librxdsa-${VERSION}/include/
+          zip -qr "librxdsa-${VERSION}.zip" librxdsa-${VERSION}/
+
+      - name: Upload mingw package
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingw-package
+          path: librxdsa-${{ github.ref_name }}.zip
+
+  pacman-release:
+    name: pacman-release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install packaging tools
+        run: pacman -Syu --noconfirm base-devel pacman-contrib sudo
+
+      - name: Download source archive
+        uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+
+      - name: Build Pacman package
+        run: |
+          mkdir -p package
+          cp PKGBUILD package/
+          cp "${ARCHIVE}" package/
+          cd package
+          sed -i "s/^pkgver=.*/pkgver=${VERSION}/" PKGBUILD
+          useradd --create-home builduser
+          chown -R builduser:builduser .
+          sudo -u builduser updpkgsums
+          sudo -u builduser makepkg -s --noconfirm
+
+      - name: Upload Pacman package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacman-package
+          path: package/*.pkg.tar.*
+
+  apt-release:
+    name: apt-release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download source archive
+        uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+
+      - name: Build Debian package
+        run: |
+          tar -xzf "${ARCHIVE}"
+          cd "librxdsa-${VERSION}"
+          make clean-build
+          make lib
+          cd ..
+
+          mkdir -p debian_pkg/DEBIAN debian_pkg/usr/lib debian_pkg/usr/include/rxdsa
+          cp "librxdsa-${VERSION}/librxdsa.a" debian_pkg/usr/lib/
+          cp "librxdsa-${VERSION}"/include/*.h debian_pkg/usr/include/rxdsa/
+
+          cat > debian_pkg/DEBIAN/control <<EOF
+          Package: librxdsa
+          Version: ${VERSION}
+          Architecture: amd64
+          Maintainer: Rushikesh Kundkar <rrkundkar777@gmail.com>
+          Section: libs
+          Priority: optional
+          Depends: libc6
+          Description: Standalone and lightweight C algorithms library
+          EOF
+
+          dpkg-deb --build debian_pkg "librxdsa-${VERSION}-amd64.deb"
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: apt-package
+          path: librxdsa-${{ github.ref_name }}-amd64.deb
+
+  dnf-release:
+    name: dnf-release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download source archive
+        uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+
+      - name: Install RPM tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Build RPM package
+        run: |
+          mkdir -p rpmbuild/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
+          cp "${ARCHIVE}" rpmbuild/SOURCES/
+
+          cat > rpmbuild/SPECS/librxdsa.spec <<EOF
+          Name:           librxdsa
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        Standalone and lightweight C algorithms library
+          License:        GPLv3
+          URL:            https://github.com/rookie2373/librxdsa
+          Source0:        librxdsa-%{version}.tar.gz
+
+          %description
+          Standalone and lightweight C algorithms library.
+
+          %prep
+          %setup -q
+
+          %build
+          make clean-build
+          make lib
+
+          %install
+          rm -rf %{buildroot}
+          mkdir -p %{buildroot}/usr/lib %{buildroot}/usr/include/rxdsa
+          cp librxdsa.a %{buildroot}/usr/lib/
+          cp include/*.h %{buildroot}/usr/include/rxdsa/
+
+          %files
+          %defattr(-,root,root,-)
+          /usr/lib/librxdsa.a
+          %dir /usr/include/rxdsa
+          /usr/include/rxdsa/*.h
+          EOF
+
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/librxdsa.spec
+          cp rpmbuild/RPMS/x86_64/librxdsa-${VERSION}-1*.rpm "librxdsa-${VERSION}-1.x86_64.rpm"
+
+      - name: Upload RPM package
+        uses: actions/upload-artifact@v4
+        with:
+          name: dnf-package
+          path: librxdsa-${{ github.ref_name }}-1.x86_64.rpm
+
+  brew-release:
+    name: brew-release ${{ github.ref_name }}
+    needs: [build, mingw-release, pacman-release, apt-release, dnf-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download source archive
+        uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: release-artifacts
+
+      - name: Download mingw package
+        uses: actions/download-artifact@v4
+        with:
+          name: mingw-package
+          path: release-artifacts
+
+      - name: Download Pacman package
+        uses: actions/download-artifact@v4
+        with:
+          name: pacman-package
+          path: release-artifacts
+
+      - name: Download Debian package
+        uses: actions/download-artifact@v4
+        with:
+          name: apt-package
+          path: release-artifacts
+
+      - name: Download RPM package
+        uses: actions/download-artifact@v4
+        with:
+          name: dnf-package
+          path: release-artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew formula
+        env:
+          HOMEBREW_DEPLOY_TOKEN: ${{ secrets.HOMEBREW_DEPLOY_TOKEN }}
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/${ARCHIVE}"
+          SHA256_HASH=$(sha256sum "release-artifacts/${ARCHIVE}" | awk '{ print $1 }')
+
+          curl -X POST \
+            -H "Authorization: Bearer ${HOMEBREW_DEPLOY_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository_owner }}/homebrew-librxdsa/dispatches" \
+            -d "{\"event_type\": \"update_formula\", \"client_payload\": {\"version\": \"${VERSION}\", \"url\": \"${URL}\", \"sha256\": \"${SHA256_HASH}\"}}"

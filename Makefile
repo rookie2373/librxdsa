@@ -1,9 +1,15 @@
 # Makefile for rxdsa C Library
 
 # === CONFIGURATION ===
-CC       := gcc
+CC       ?= gcc
 CFLAGS   := -Wall -Wextra -Iinclude -g -std=c11 -O2
 ARFLAGS  := rcs
+
+# === INSTALL DIRS ===
+PREFIX   ?= /usr/local
+EXEC_PREFIX ?= $(PREFIX)
+LIBDIR   ?= $(EXEC_PREFIX)/lib
+INCLUDEDIR ?= $(PREFIX)/include
 
 # === VARIABLES ===
 SRC      := $(wildcard src/*.c)
@@ -73,6 +79,20 @@ ts\:%: $(LIB)
 	@$(CC) $(CFLAGS) tests/$*.c -L. -lrxdsa -o tests/$*
 	@echo "🧪 Running test: $*"
 	@./tests/$* && echo "✅ $* PASSED" || (echo "❌ $* FAILED"; exit 1)
+
+
+# === PACMAN INSTALL ===
+.PHONY: install
+install: $(LIB)
+	@echo "🚚 Installing library to $(DESTDIR)$(LIBDIR)"
+	mkdir -p $(DESTDIR)$(LIBDIR)
+	cp $(LIB) $(DESTDIR)$(LIBDIR)/
+
+	@echo "🚚 Installing headers to $(DESTDIR)$(INCLUDEDIR)/rxdsa"
+	mkdir -p $(DESTDIR)$(INCLUDEDIR)/rxdsa
+	cp include/*.h $(DESTDIR)$(INCLUDEDIR)/rxdsa/
+	@echo "✓ Installation complete"
+
 
 # === MAINTENANCE ===
 
