@@ -96,14 +96,88 @@ jobs:
             "https://api.github.com/repos/${{ github.repository_owner }}/homebrew-librxdsa/dispatches" \
             -d "{\"event_type\": \"update_formula\", \"client_payload\": {\"version\": \"${VERSION}\", \"url\": \"${URL}\", \"sha256\": \"${SHA256_HASH}\"}}"
   
-  winget-release:
-      name: winget-release ${{ github.ref_name }}
-      needs: [build, brew-release]
-      runs-on: ubuntu-latest
-      steps:
-        - name: Create release ${{ github.ref_name }}
-          uses: vedantmgoyal2009/winget-releaser@v2
-          with:
-            identifier: rookie2373.librxdsa
-            installers-regex: 'librxdsa-.*\.zip$'
-            token: ${{ secrets.WINGET_DEPLOY_TOKEN }}
+  pacman-minimal-release:
+    name: pacman-minimal-release ${{ github.ref_name }}
+    needs: [build, brew-release]
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Checkout repository structure
+        uses: actions/checkout@v4
+
+      - name: Install packaging tools
+        id: install_package_tools
+        run: |
+          pacman -Syu --noconfirm git openssh pacman-contrib base-devel
+
+      - name: Download build artifacts
+        id: download_build_artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+
+      - name: Validate PKGBUILD execution
+        id: validate_pkgbuild_execution
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          mkdir -p mock_build
+          cp PKGBUILD mock_build/PKGBUILD
+          cd mock_build
+
+          sed -i "s/pkgver=.*/pkgver=${VERSION}/g" PKGBUILD
+          sed -i "s/pkgrel=.*/pkgrel=1/g" PKGBUILD
+
+          cp ../${VERSION}.tar.gz ./${VERSION}.tar.gz
+          updpkgsums
+
+          useradd -m builduser
+          chown -R builduser:builduser .
+          
+          sudo -u builduser makepkg -s --noconfirm
+          echo "✓ Successfully validated package build workflow local compilation"
+
+      # - name: Setup AUR SSH Authentication
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+      #     chmod 600 ~/.ssh/id_rsa
+      #     # Add aur.archlinux.org host keys to prevent SSH interactive prompts
+      #     ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+
+      # - name: Pacman deploy ${{ github.ref_name }}
+      #   id: deploy_to_aur
+      #   env:
+      #     VERSION: ${{ needs.build.outputs.version }}
+      #   run: |
+      #     git clone aur@aur.archlinux.org:librxdsa.git aur_repo
+
+      #     cp PKGBUILD aur_repo/PKGBUILD
+      #     cd aur_repo
+
+      #     sed -i "s/pkgver=.*/pkgver=${VERSION}/g" PKGBUILD
+      #     sed -i "s/pkgrel=.*/pkgrel=1/g" PKGBUILD
+
+      #     cp ../${VERSION}.tar.gz ./${VERSION}.tar.gz
+
+      #     updpkgsums
+
+      #     useradd -m builduser
+      #     chown -R builduser:builduser .
+      #     sudo -u builduser makepkg --printsrcinfo > .SRCINFO
+
+      #     rm -f ${VERSION}.tar.gz
+
+      #     git config --global user.name "Rushikesh Kundkar (CI Bot)"
+      #     git config --global user.email "rrkundkar777@gmail.com"
+      #     git config --global --add safe.directory "$(pwd)"
+          
+      #     git add PKGBUILD .SRCINFO
+          
+      #     if ! git diff-index --quiet HEAD; then
+      #       git commit -m "Automated deployment update to version ${VERSION}"
+      #       git push origin master
+      #     else
+      #       echo "No pipeline modifications detected. Skipping deployment push."
+      #     fi
