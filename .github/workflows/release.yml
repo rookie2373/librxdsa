@@ -260,7 +260,7 @@ jobs:
         run: |
           mkdir -p rpmbuild/SOURCES rpmbuild/SPECS rpmbuild/BUILD rpmbuild/RPMS rpmbuild/SRPMS
           
-          cp release-artifacts/librxdsa-${VERSION}.tar.gz rpmbuild/SOURCES/
+          cp librxdsa-${VERSION}.tar.gz rpmbuild/SOURCES/
           
           cat <<EOF > rpmbuild/SPECS/librxdsa.spec
           Name:           librxdsa
