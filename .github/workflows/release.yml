@@ -130,10 +130,10 @@ jobs:
           sed -i "s/pkgrel=.*/pkgrel=1/g" PKGBUILD
 
           cp ../${VERSION}.tar.gz ./${VERSION}.tar.gz
-          updpkgsums
 
           useradd -m builduser
           chown -R builduser:builduser .
+          sudo -u builduser updpkgsums
           
           sudo -u builduser makepkg -s --noconfirm
           echo "✓ Successfully validated package build workflow local compilation"
