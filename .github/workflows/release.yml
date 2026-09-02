@@ -67,6 +67,9 @@ jobs:
       - name: Download build artifacts
         id: download_build_artifacts
         uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: release-artifacts
 
       - name: Create release ${{ github.ref_name }}
         id: create_release
