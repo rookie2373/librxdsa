@@ -59,7 +59,7 @@ jobs:
 
   brew-release:
     name: brew-release ${{ github.ref_name }}
-    needs: build
+    needs: [build, debian-minimal-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -67,16 +67,15 @@ jobs:
       - name: Download build artifacts
         id: download_build_artifacts
         uses: actions/download-artifact@v4
-        with:
-          name: release-artifacts
 
       - name: Create release ${{ github.ref_name }}
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ github.ref_name }}.tar.gz
-            librxdsa-${{ github.ref_name }}.zip
+            release-artifacts/${{ github.ref_name }}.tar.gz
+            release-artifacts/librxdsa-${{ github.ref_name }}.zip
+            debian-package/librxdsa_${{ github.ref_name }}_amd64.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -86,7 +85,7 @@ jobs:
           VERSION="${{ needs.build.outputs.version }}"
 
           URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/${VERSION}.tar.gz"
-          SHA256_HASH=$(sha256sum "${VERSION}.tar.gz" | awk '{ print $1 }')
+          SHA256_HASH=$(sha256sum "release-artifacts/${VERSION}.tar.gz" | awk '{ print $1 }')
 
           echo "Triggering Homebrew update for version ${VERSION}"
 
@@ -181,3 +180,53 @@ jobs:
       #     else
       #       echo "No pipeline modifications detected. Skipping deployment push."
       #     fi
+
+  debian-minimal-release:
+    name: debian-minimal-release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        id: download_build_artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+
+      - name: Build debian_pkg ${{ github.ref_name }}
+        id: build_deb_pkg
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          tar -xzf ${VERSION}.tar.gz
+          cd ${VERSION}
+          
+          make clean-build
+          make lib
+          cd ..
+
+          mkdir -p debian_pkg/DEBIAN
+          mkdir -p debian_pkg/usr/lib
+          mkdir -p debian_pkg/usr/include/rxdsa
+
+          cp ${VERSION}/librxdsa.a debian_pkg/usr/lib/
+          cp ${VERSION}/include/*.h debian_pkg/usr/include/rxdsa/
+
+          cat <<EOF > debian_pkg/DEBIAN/control
+          Package: librxdsa
+          Version: ${VERSION}
+          Architecture: amd64
+          Maintainer: Rushikesh Kundkar <rrkundkar777@gmail.com>
+          Section: libs
+          Priority: optional
+          Depends: libc6
+          Description: Standalone and lightweight C algorithms library
+          EOF
+
+          dpkg-deb --build debian_pkg "librxdsa_${VERSION}_amd64.deb"
+
+      - name: Upload debian package
+        id: upload_debian_package
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: librxdsa_${{ github.ref_name }}_amd64.deb
