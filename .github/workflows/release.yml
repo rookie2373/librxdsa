@@ -1,8 +1,17 @@
 name: Production Release
+
 on:
   push:
     tags:
       - '*.*.*'
+
+permissions:
+  contents: read
+
+env:
+  VERSION: ${{ github.ref_name }}
+  ARCHIVE: librxdsa-${{ github.ref_name }}.tar.gz
+
 jobs:
   build:
     name: build ${{ github.ref_name }}
@@ -10,212 +19,119 @@ jobs:
     outputs:
       version: ${{ steps.validate_tag.outputs.version }}
     steps:
-      - name: Checkout source ${{ github.ref_name }}
-        id: checkout_source
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Validate tag ${{ github.ref_name }}
+      - name: Validate tag
         id: validate_tag
         run: |
-          if [[ ! "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag ${GITHUB_REF_NAME} is not a valid version like 0.0.1"
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag ${VERSION} is not a valid version like 0.0.1"
             exit 1
           fi
-          echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
-      - name: Build brew archive
-        id: build_brew_archive
+      - name: Build source archive
         run: |
-          git archive --format=tar.gz --prefix=librxdsa-${{ github.ref_name }}/ -o librxdsa-${{ github.ref_name }}.tar.gz HEAD
+          git archive \
+            --format=tar.gz \
+            --prefix=librxdsa-${VERSION}/ \
+            --output="${ARCHIVE}" \
+            HEAD
 
-      - name: MinGW install
-        id: mingw_install
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-archive
+          path: ${{ env.ARCHIVE }}
+
+  mingw-release:
+    name: mingw-release ${{ github.ref_name }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install MinGW tools
         run: |
           sudo apt-get update
           sudo apt-get install -y mingw-w64 zip
 
-      - name: Build winget binary
-        id: build_winget_binary
+      - name: Build MinGW package
         run: |
           make clean-build
           make CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar lib
+          mkdir -p librxdsa-${VERSION}/lib librxdsa-${VERSION}/include
+          cp librxdsa.a librxdsa-${VERSION}/lib/
+          cp include/*.h librxdsa-${VERSION}/include/
+          zip -qr "librxdsa-${VERSION}.zip" librxdsa-${VERSION}/
 
-          mkdir -p ${{ github.ref_name }}/lib
-          mkdir -p ${{ github.ref_name }}/include
-
-          cp librxdsa.a ${{ github.ref_name }}/lib/
-          cp -r include/* ${{ github.ref_name }}/include/
-
-          zip -r librxdsa-${{ github.ref_name }}.zip ${{ github.ref_name }}/
-      
-      - name: Upload build artifacts
-        id: upload_build_artifacts
+      - name: Upload mingw package
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
-          path: |
-            librxdsa-${{ github.ref_name }}.tar.gz
-            librxdsa-${{ github.ref_name }}.zip
+          name: mingw-package
+          path: librxdsa-${{ github.ref_name }}.zip
 
-  brew-release:
-    name: brew-release ${{ github.ref_name }}
-    needs: [build, debian-minimal-release, redhat-minimal-release]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download build artifacts
-        id: download_build_artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: release-artifacts
-          path: release-artifacts
-
-      - name: Create release ${{ github.ref_name }}
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release-artifacts/librxdsa-${{ github.ref_name }}.tar.gz
-            release-artifacts/librxdsa-${{ github.ref_name }}.zip
-            debian-package/librxdsa-${{ github.ref_name }}-amd64.deb
-            redhat-package/librxdsa-${{ github.ref_name }}-1.x86_64.rpm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Brew deploy ${{ github.ref_name }}
-        id: deploy_brew
-        run: |
-          VERSION="${{ needs.build.outputs.version }}"
-
-          URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/librxdsa-${VERSION}.tar.gz"
-          SHA256_HASH=$(sha256sum "release-artifacts/librxdsa-${VERSION}.tar.gz" | awk '{ print $1 }')
-
-          echo "Triggering Homebrew update for version ${VERSION}"
-
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.HOMEBREW_DEPLOY_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository_owner }}/homebrew-librxdsa/dispatches" \
-            -d "{\"event_type\": \"update_formula\", \"client_payload\": {\"version\": \"${VERSION}\", \"url\": \"${URL}\", \"sha256\": \"${SHA256_HASH}\"}}"
-  
-  pacman-minimal-release:
-    name: pacman-minimal-release ${{ github.ref_name }}
-    needs: [build, brew-release]
+  pacman-release:
+    name: pacman-release ${{ github.ref_name }}
+    needs: build
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
     steps:
-      - name: Checkout repository structure
+      - name: Checkout source
         uses: actions/checkout@v4
 
       - name: Install packaging tools
-        id: install_package_tools
-        run: |
-          pacman -Syu --noconfirm git openssh pacman-contrib base-devel
+        run: pacman -Syu --noconfirm base-devel pacman-contrib sudo
 
-      - name: Download build artifacts
-        id: download_build_artifacts
+      - name: Download source archive
         uses: actions/download-artifact@v4
         with:
-          name: release-artifacts
+          name: source-archive
 
-      - name: Validate PKGBUILD execution
-        id: validate_pkgbuild_execution
-        env:
-          VERSION: ${{ needs.build.outputs.version }}
+      - name: Build Pacman package
         run: |
-          mkdir -p mock_build
-          cp PKGBUILD mock_build/PKGBUILD
-          cd mock_build
-
-          sed -i "s/pkgver=.*/pkgver=${VERSION}/g" PKGBUILD
-          sed -i "s/pkgrel=.*/pkgrel=1/g" PKGBUILD
-
-          cp ../release-artifacts/librxdsa-${VERSION}.tar.gz ./librxdsa-${VERSION}.tar.gz
-
-          useradd -m builduser
+          mkdir -p package
+          cp PKGBUILD package/
+          cp "${ARCHIVE}" package/
+          cd package
+          sed -i "s/^pkgver=.*/pkgver=${VERSION}/" PKGBUILD
+          updpkgsums
+          useradd --create-home builduser
           chown -R builduser:builduser .
-          sudo -u builduser updpkgsums
-          
           sudo -u builduser makepkg -s --noconfirm
-          echo "✓ Successfully validated package build workflow local compilation"
 
-      # - name: Setup AUR SSH Authentication
-      #   run: |
-      #     mkdir -p ~/.ssh
-      #     echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-      #     chmod 600 ~/.ssh/id_rsa
-      #     # Add aur.archlinux.org host keys to prevent SSH interactive prompts
-      #     ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+      - name: Upload Pacman package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacman-package
+          path: package/*.pkg.tar.*
 
-      # - name: Pacman deploy ${{ github.ref_name }}
-      #   id: deploy_to_aur
-      #   env:
-      #     VERSION: ${{ needs.build.outputs.version }}
-      #   run: |
-      #     git clone aur@aur.archlinux.org:librxdsa.git aur_repo
-
-      #     cp PKGBUILD aur_repo/PKGBUILD
-      #     cd aur_repo
-
-      #     sed -i "s/pkgver=.*/pkgver=${VERSION}/g" PKGBUILD
-      #     sed -i "s/pkgrel=.*/pkgrel=1/g" PKGBUILD
-
-      #     cp ../${VERSION}.tar.gz ./${VERSION}.tar.gz
-
-      #     updpkgsums
-
-      #     useradd -m builduser
-      #     chown -R builduser:builduser .
-      #     sudo -u builduser makepkg --printsrcinfo > .SRCINFO
-
-      #     rm -f ${VERSION}.tar.gz
-
-      #     git config --global user.name "Rushikesh Kundkar (CI Bot)"
-      #     git config --global user.email "rrkundkar777@gmail.com"
-      #     git config --global --add safe.directory "$(pwd)"
-          
-      #     git add PKGBUILD .SRCINFO
-          
-      #     if ! git diff-index --quiet HEAD; then
-      #       git commit -m "Automated deployment update to version ${VERSION}"
-      #       git push origin master
-      #     else
-      #       echo "No pipeline modifications detected. Skipping deployment push."
-      #     fi
-
-  debian-minimal-release:
-    name: debian-minimal-release ${{ github.ref_name }}
+  apt-release:
+    name: apt-release ${{ github.ref_name }}
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifacts
-        id: download_build_artifacts
+      - name: Download source archive
         uses: actions/download-artifact@v4
         with:
-          name: release-artifacts
+          name: source-archive
 
-      - name: Build debian_pkg ${{ github.ref_name }}
-        id: build_deb_pkg
-        env:
-          VERSION: ${{ github.ref_name }}
+      - name: Build Debian package
         run: |
-          tar -xzf librxdsa-${VERSION}.tar.gz
-          cd librxdsa-${VERSION}
-          
+          tar -xzf "${ARCHIVE}"
+          cd "librxdsa-${VERSION}"
           make clean-build
           make lib
           cd ..
 
-          mkdir -p debian_pkg/DEBIAN
-          mkdir -p debian_pkg/usr/lib
-          mkdir -p debian_pkg/usr/include/rxdsa
+          mkdir -p debian_pkg/DEBIAN debian_pkg/usr/lib debian_pkg/usr/include/rxdsa
+          cp "librxdsa-${VERSION}/librxdsa.a" debian_pkg/usr/lib/
+          cp "librxdsa-${VERSION}"/include/*.h debian_pkg/usr/include/rxdsa/
 
-          cp librxdsa-${VERSION}/librxdsa.a debian_pkg/usr/lib/
-          cp librxdsa-${VERSION}/include/*.h debian_pkg/usr/include/rxdsa/
-
-          cat <<EOF > debian_pkg/DEBIAN/control
+          cat > debian_pkg/DEBIAN/control <<EOF
           Package: librxdsa
           Version: ${VERSION}
           Architecture: amd64
@@ -228,41 +144,33 @@ jobs:
 
           dpkg-deb --build debian_pkg "librxdsa-${VERSION}-amd64.deb"
 
-      - name: Upload debian package
-        id: upload_debian_package
+      - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: debian-package
+          name: apt-package
           path: librxdsa-${{ github.ref_name }}-amd64.deb
 
-
-  redhat-minimal-release:
-    name: redhat-minimal-release ${{ github.ref_name }}
+  dnf-release:
+    name: dnf-release ${{ github.ref_name }}
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifacts
-        id: download_build_artifacts
+      - name: Download source archive
         uses: actions/download-artifact@v4
         with:
-          name: release-artifacts
+          name: source-archive
 
-      - name: Install rpm build tools
-        id: install_rpm_build_tools
+      - name: Install RPM tools
         run: |
           sudo apt-get update
           sudo apt-get install -y rpm
 
-      - name: Build rpm package
-        id: build_rpm_package
-        env:
-          VERSION: ${{ github.ref_name }}
+      - name: Build RPM package
         run: |
-          mkdir -p rpmbuild/SOURCES rpmbuild/SPECS rpmbuild/BUILD rpmbuild/RPMS rpmbuild/SRPMS
-          
-          cp librxdsa-${VERSION}.tar.gz rpmbuild/SOURCES/
-          
-          cat <<EOF > rpmbuild/SPECS/librxdsa.spec
+          mkdir -p rpmbuild/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
+          cp "${ARCHIVE}" rpmbuild/SOURCES/
+
+          cat > rpmbuild/SPECS/librxdsa.spec <<EOF
           Name:           librxdsa
           Version:        ${VERSION}
           Release:        1%{?dist}
@@ -283,8 +191,7 @@ jobs:
 
           %install
           rm -rf %{buildroot}
-          mkdir -p %{buildroot}/usr/lib
-          mkdir -p %{buildroot}/usr/include/rxdsa
+          mkdir -p %{buildroot}/usr/lib %{buildroot}/usr/include/rxdsa
           cp librxdsa.a %{buildroot}/usr/lib/
           cp include/*.h %{buildroot}/usr/include/rxdsa/
 
@@ -293,19 +200,70 @@ jobs:
           /usr/lib/librxdsa.a
           %dir /usr/include/rxdsa
           /usr/include/rxdsa/*.h
-
-          %changelog
-          * Thu Sep 03 2026 Rushikesh Kundkar <rrkundkar777@gmail.com> - %{version}-1
-          - Automated native binary deployment release updates
           EOF
 
           rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/librxdsa.spec
+          cp rpmbuild/RPMS/x86_64/librxdsa-${VERSION}-1*.rpm "librxdsa-${VERSION}-1.x86_64.rpm"
 
-          cp rpmbuild/RPMS/x86_64/librxdsa-${VERSION}-1*.rpm ./librxdsa-${VERSION}-1.x86_64.rpm
-
-      - name: Upload RedHat package
-        id: upload_redhat_package
+      - name: Upload RPM package
         uses: actions/upload-artifact@v4
         with:
-          name: redhat-package
+          name: dnf-package
           path: librxdsa-${{ github.ref_name }}-1.x86_64.rpm
+
+  brew-release:
+    name: brew-release ${{ github.ref_name }}
+    needs: [build, mingw-release, pacman-release, apt-release, dnf-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download source archive
+        uses: actions/download-artifact@v4
+        with:
+          name: source-archive
+          path: release-artifacts
+
+      - name: Download mingw package
+        uses: actions/download-artifact@v4
+        with:
+          name: mingw-package
+          path: release-artifacts
+
+      - name: Download Pacman package
+        uses: actions/download-artifact@v4
+        with:
+          name: pacman-package
+          path: release-artifacts
+
+      - name: Download Debian package
+        uses: actions/download-artifact@v4
+        with:
+          name: apt-package
+          path: release-artifacts
+
+      - name: Download RPM package
+        uses: actions/download-artifact@v4
+        with:
+          name: dnf-package
+          path: release-artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew formula
+        env:
+          HOMEBREW_DEPLOY_TOKEN: ${{ secrets.HOMEBREW_DEPLOY_TOKEN }}
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/${ARCHIVE}"
+          SHA256_HASH=$(sha256sum "release-artifacts/${ARCHIVE}" | awk '{ print $1 }')
+
+          curl -X POST \
+            -H "Authorization: Bearer ${HOMEBREW_DEPLOY_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository_owner }}/homebrew-librxdsa/dispatches" \
+            -d "{\"event_type\": \"update_formula\", \"client_payload\": {\"version\": \"${VERSION}\", \"url\": \"${URL}\", \"sha256\": \"${SHA256_HASH}\"}}"

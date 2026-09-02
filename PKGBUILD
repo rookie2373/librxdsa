@@ -1,6 +1,6 @@
 # Maintainer: Rushikesh Kundkar <rrkundkar777@gmail.com>
 pkgname=librxdsa
-pkgver=0.0.16
+pkgver=0.0.17
 pkgrel=1
 pkgdesc="Standalone and lightweight C algorithms library"
 arch=('x86_64' 'aarch64')
@@ -11,12 +11,12 @@ source=("librxdsa-${pkgver}.tar.gz::${url}/releases/download/${pkgver}/librxdsa-
 sha256sums=('SKIP')
 
 build() {
-    cd "${pkgver}"
+    cd "librxdsa-${pkgver}"
     make lib
 }
 
 package() {
-    cd "${pkgver}"
+    cd "librxdsa-${pkgver}"
     make DESTDIR="${pkgdir}" PREFIX=/usr install
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
