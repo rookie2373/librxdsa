@@ -98,9 +98,9 @@ jobs:
           cp "${ARCHIVE}" package/
           cd package
           sed -i "s/^pkgver=.*/pkgver=${VERSION}/" PKGBUILD
-          updpkgsums
           useradd --create-home builduser
           chown -R builduser:builduser .
+          sudo -u builduser updpkgsums
           sudo -u builduser makepkg -s --noconfirm
 
       - name: Upload Pacman package

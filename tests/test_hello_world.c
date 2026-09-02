@@ -7,7 +7,7 @@
 void hello_world();
 
 int main() {
-    const char* expected_output = "rxDSA 0.0.17 (0.0.17, Sep 1 2026, 00:12:13) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin\nVisit \"github.com/rookie2373\" for more information\n";
+    const char* expected_output = "rxDSA 0.0.18 (0.0.18, Sep 1 2026, 00:12:13) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin\nVisit \"github.com/rookie2373\" for more information\n";
 
     FILE* tmp = tmpfile();
     if (!tmp) {
