@@ -1,0 +1,30 @@
+/* docs/css/custom.css */
+
+html {
+    /* 1. Tone down the bright primary brand accent (A cleaner slate/navy blue) */
+    --primary-color: #1a56db;
+    --primary-dark-color: #1e429f;
+    
+    /* 2. Tighten up bulky card border radius for a sharper feel */
+    --border-radius-large: 6px;
+    --border-radius-small: 4px;
+    
+    /* 3. Enhance readability spacing */
+    --content-line-height: 1.65;
+    
+    /* 4. Fix table layouts from looking too wide or squished */
+    --spacing-large: 14px;
+    --spacing-medium: 10px;
+}
+
+/* Force function parameters and documentation tables to render cleanly */
+.memitem {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    border: 1px solid var(--separator-color) !important;
+    margin-bottom: 24px !important;
+}
+
+.memtitle {
+    font-weight: 600 !important;
+    letter-spacing: -0.01em;
+}
