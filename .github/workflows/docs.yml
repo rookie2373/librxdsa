@@ -1,0 +1,69 @@
+name: Doxygen Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.gh_pages_deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        id: checkout_source
+        uses: actions/checkout@v4
+
+      - name: Validate Tag
+        id: validate_tag
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag ${VERSION} is not a valid version like 0.0.1"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install Doxygen and Graphviz
+        id: install_doxygen_graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Doxyfile Tag Inject
+        id: doxyfile_tag_inject
+        run: |
+          CLEAN_VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          
+          echo "PROJECT_NUMBER = $CLEAN_VERSION" >> Doxyfile
+          echo "Injected version: $CLEAN_VERSION into Doxyfile"
+
+      - name: Doxygen Generate
+        id: doxygen_generate
+        run: doxygen Doxyfile
+
+      - name: Setup GitHub Pages
+        id: setup_gh_pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Docs
+        id: upload_docs
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/html'
+
+      - name: GitHub Pages Deploy
+        id: gh_pages_deploy
+        uses: actions/deploy-pages@v4
