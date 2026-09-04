@@ -22,17 +22,17 @@ paru -S librxdsa
 Download the `.deb` asset from our [Releases page](https://github.com) and install natively:
 ```bash
 sudo apt update
-sudo apt install ./librxdsa-0.0.22-amd64.deb
+sudo apt install ./librxdsa-0.0.23-amd64.deb
 ```
 
 ### 🎩 Fedora & RedHat (DNF)
 Download the `.rpm` asset from our [Releases page](https://github.com) and install natively:
 ```bash
-sudo dnf install ./librxdsa-0.0.22-1.x86_64.rpm
+sudo dnf install ./librxdsa-0.0.23-1.x86_64.rpm
 ```
 
 ### 🪟 Windows (MinGW-w64)
-Download `librxdsa-0.0.22.zip` from our Releases page and link the static library inside your workspace path:
+Download `librxdsa-0.0.23.zip` from our Releases page and link the static library inside your workspace path:
 ```bash
 # Include Paths
 -Iinclude/rxdsa
