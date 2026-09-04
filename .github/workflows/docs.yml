@@ -35,12 +35,16 @@ jobs:
             exit 1
           fi
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
-
-      - name: Install Doxygen and Graphviz
-        id: install_doxygen_graphviz
+      
+      - name: Install Modern Doxygen and Graphviz
+        id: install_modern_doxygen
         run: |
           sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+          sudo apt-get install -y graphviz libclang-dev
+          curl -LO https://www.doxygen.nl/files/doxygen-1.18.0.linux.bin.tar.gz
+          tar -xf doxygen-1.18.0.linux.bin.tar.gz
+          sudo cp doxygen-1.18.0/bin/doxygen /usr/local/bin/doxygen
+          doxygen --version
 
       - name: Doxyfile Tag Inject
         id: doxyfile_tag_inject
