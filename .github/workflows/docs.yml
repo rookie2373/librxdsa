@@ -55,7 +55,9 @@ jobs:
         run: doxygen Doxyfile
 
       - name: Disable Jekyll Linting
-        run: touch docs/html/.nojekyll
+        run: | 
+          touch docs/html/.nojekyll
+          echo "NoJekyll injected into production artifact tree."
 
       - name: Setup GitHub Pages
         id: setup_gh_pages
