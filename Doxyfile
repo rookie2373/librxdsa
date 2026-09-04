@@ -1,4 +1,4 @@
-# Doxyfile 1.16.0
+# Doxyfile 1.18.0
 
 # This file describes the settings to be used by the documentation system
 # Doxygen (www.doxygen.org) for a project.
@@ -11,7 +11,7 @@
 # TAG = value [value, ...]
 # For lists, items can also be appended using:
 # TAG += value [value, ...]
-# Values that contain spaces should be placed between quotes (\" \").
+# Values that contain spaces should be placed between quotes (" ").
 #
 # Note:
 #
@@ -48,13 +48,14 @@ PROJECT_NAME           = "rxDSA"
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = D2026.1.2
+PROJECT_NUMBER         = "0.0.1"
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewers a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = A lightweight standalone C algorithm library
+PROJECT_BRIEF          = "A standalone and lightweight C algorithms library"
+
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
 # pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
@@ -73,14 +74,14 @@ PROJECT_ICON           =
 # entered, it will be relative to the location where Doxygen was started. If
 # left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = docs
+OUTPUT_DIRECTORY       = docs/
 
 # If the CREATE_SUBDIRS tag is set to YES then Doxygen will create up to 4096
 # sub-directories (in 2 levels) under the output directory of each output format
 # and will distribute the generated files over these directories. Enabling this
 # option can be useful when feeding Doxygen a huge amount of source files, where
 # putting all generated files in the same directory would otherwise cause
-# performance problems for the file system. Adapt CREATE_SUBDIRS_LEVEL to
+# performance problems for the file system. Adjust CREATE_SUBDIRS_LEVEL to
 # control the number of sub-directories.
 # The default value is: NO.
 
@@ -134,7 +135,7 @@ BRIEF_MEMBER_DESC      = YES
 # brief descriptions will be completely suppressed.
 # The default value is: YES.
 
-REPEAT_BRIEF           = NO
+REPEAT_BRIEF           = YES
 
 # This tag implements a quasi-intelligent brief description abbreviator that is
 # used to form the text in various listings. Each string in this list, if found
@@ -405,8 +406,8 @@ AUTOLINK_SUPPORT       = YES
 
 # This tag specifies a list of words that, when matching the start of a word in
 # the documentation, will suppress auto links generation, if it is enabled via
-# AUTOLINK_SUPPORT. This list does not affect links explicitly created using \#
-# or the \link or commands.
+# AUTOLINK_SUPPORT. This list does not affect links explicitly created using #
+# or the \link or \ref commands.
 # This tag requires that the tag AUTOLINK_SUPPORT is set to YES.
 
 AUTOLINK_IGNORE_WORDS  =
@@ -547,7 +548,7 @@ TIMESTAMP              = NO
 # normally produced when WARNINGS is set to YES.
 # The default value is: NO.
 
-EXTRACT_ALL            = NO
+EXTRACT_ALL            = YES
 
 # If the EXTRACT_PRIVATE tag is set to YES, all private members of a class will
 # be included in the documentation.
@@ -801,13 +802,12 @@ GENERATE_REQUIREMENTS  = YES
 
 # The REQ_TRACEABILITY_INFO tag controls if traceability information is shown on
 # the requirements page (only relevant when using \requirement comment blocks).
-# The setting NO will disable the traceablility information altogether. The
+# The setting NO will disable the traceability information altogether. The
 # setting UNSATISFIED_ONLY will show a list of requirements that are missing a
-# satisfies relation (through the command: \
-# See also: tisfies). Similarly the setting UNVERIFIED_ONLY will show a list of
-# requirements that are missing a verifies relation (through the command:
-# \verifies). Setting the tag to YES (the default) will show both lists if
-# applicable.
+# satisfies relation (through the command: \satisfies). Similarly the setting
+# UNVERIFIED_ONLY will show a list of requirements that are missing a verifies
+# relation (through the command: \verifies). Setting the tag to YES (the
+# default) will show both lists if applicable.
 # Possible values are: YES, NO, UNSATISFIED_ONLY and UNVERIFIED_ONLY.
 # The default value is: YES.
 # This tag requires that the tag GENERATE_REQUIREMENTS is set to YES.
@@ -855,8 +855,8 @@ SHOW_NAMESPACES        = YES
 # The FILE_VERSION_FILTER tag can be used to specify a program or script that
 # Doxygen should invoke to get the current version for each file (typically from
 # the version control system). Doxygen will invoke the program by executing (via
-# popen()) the command command input-file, where command is the value of the
-# FILE_VERSION_FILTER tag, and input-file is the name of an input file provided
+# popen()) the command command input_file, where command is the value of the
+# FILE_VERSION_FILTER tag, and input_file is the name of an input file provided
 # by Doxygen. Whatever the program writes to standard output is used as the file
 # version. For an example see the documentation.
 
@@ -1026,10 +1026,7 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = examples \
-                         include \
-                         src \
-                         tests
+INPUT                  = include/ src/ README.md
 
 # This tag can be used to specify the character encoding of the source files
 # that Doxygen parses. Internally Doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1124,7 +1121,7 @@ FILE_PATTERNS          = *.c \
 # be searched for input files as well.
 # The default value is: NO.
 
-RECURSIVE              = NO
+RECURSIVE              = YES
 
 # The EXCLUDE tag can be used to specify files and/or directories that should be
 # excluded from the INPUT source files. This way you can easily exclude a
@@ -1133,7 +1130,7 @@ RECURSIVE              = NO
 # Note that relative paths are relative to the directory from which Doxygen is
 # run.
 
-EXCLUDE                =
+EXCLUDE                = tests/
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -1163,14 +1160,14 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           =
+EXAMPLE_PATH           = examples
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and
 # *.h) to filter out the source-files in the directories. If left blank all
 # files are included.
 
-EXAMPLE_PATTERNS       = *
+EXAMPLE_PATTERNS       = *.c *.h
 
 # If the EXAMPLE_RECURSIVE tag is set to YES then subdirectories will be
 # searched for input files to be used with the \include or \dontinclude commands
@@ -1275,14 +1272,14 @@ FORTRAN_COMMENT_AFTER  = 72
 # also VERBATIM_HEADERS is set to NO.
 # The default value is: NO.
 
-SOURCE_BROWSER         = YES    
+SOURCE_BROWSER         = NO
 
 # Setting the INLINE_SOURCES tag to YES will include the body of functions,
 # multi-line macros, enums or list initialized variables directly into the
 # documentation.
 # The default value is: NO.
 
-INLINE_SOURCES         = YES
+INLINE_SOURCES         = NO
 
 # Setting the STRIP_CODE_COMMENTS tag to YES will instruct Doxygen to hide any
 # special comment blocks from generated source code fragments. Normal C, C++ and
@@ -1453,7 +1450,7 @@ HTML_STYLESHEET        =
 # documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  = docs/doxygen-awesome.css
+HTML_EXTRA_STYLESHEET  =
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
@@ -1626,8 +1623,8 @@ DOCSET_PUBLISHER_NAME  = Publisher
 # a.o. the download links, offline (the HTML help workshop was already many
 # years in maintenance mode). You can download the HTML help workshop from the
 # web archives at Installation executable (see:
-# http://web.archive.org/web/20160201063255/http://download.microsoft.com/downlo
-# ad/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe).
+# http://web.archive.org/web/20160201063255/https://download.microsoft.com/downl
+# oad/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe).
 #
 # The HTML Help Workshop contains a compiler that can convert all HTML output
 # generated by Doxygen into a single compiled HTML file (.chm). Compiled HTML
@@ -1934,7 +1931,7 @@ MATHJAX_FORMAT         = HTML-CSS
 # output directory using the MATHJAX_RELPATH option. For Mathjax version 2 the
 # destination directory should contain the MathJax.js script. For instance, if
 # the mathjax directory is located at the same level as the HTML output
-# directory, then MATHJAX_RELPATH should be ../mathjax.s For Mathjax versions 3
+# directory, then MATHJAX_RELPATH should be ../mathjax. For Mathjax versions 3
 # and 4 the destination directory should contain the tex-<format>.js script
 # (where <format> is either chtml or svg). The default value points to the
 # MathJax Content Delivery Network so you can quickly see the result without
@@ -2155,9 +2152,8 @@ EXTRA_PACKAGES         =
 #
 # Note: Only use a user-defined header if you know what you are doing!
 # Note: The header is subject to change so you typically have to regenerate the
-# default header when upgrading to a newer version of Doxygen. The following
-# commands have a special meaning inside the header (and footer): For a
-# description of the possible markers and block names see the documentation.
+# default header when upgrading to a newer version of Doxygen. For a description
+# of the possible markers and block names see the documentation.
 # This tag requires that the tag GENERATE_LATEX is set to YES.
 
 LATEX_HEADER           =
@@ -2628,7 +2624,7 @@ HIDE_UNDOC_RELATIONS   = YES
 # set to NO
 # The default value is: NO.
 
-HAVE_DOT               = NO
+HAVE_DOT               = YES
 
 # The DOT_NUM_THREADS specifies the number of dot invocations Doxygen is allowed
 # to run in parallel. When set to 0 Doxygen will base this on the number of
@@ -2639,6 +2635,19 @@ HAVE_DOT               = NO
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 DOT_NUM_THREADS        = 0
+
+# The DOT_BATCH_SIZE specifies the number of dot graphs Doxygen is allowed to
+# compile in a single invocation of dot. When set to 1 Doxygen will invoke dot
+# for each graph separately, which can cause significant process creation
+# overhead especially on systems with many CPU cores. Together with
+# DOT_NUM_THREADS this setting can be used to optimise the dot processing speed
+# for a particular system. Doxygen will try to give each thread a balanced batch
+# of work. If the total number of graphs to process exceeds DOT_NUM_THREADS *
+# DOT_BATCH_SIZE then additional batches will be created for dot to process.
+# Minimum value: 1, maximum value: 1000, default value: 50.
+# This tag requires that the tag HAVE_DOT is set to YES.
+
+DOT_BATCH_SIZE         = 50
 
 # DOT_COMMON_ATTR is common attributes for nodes, edges and labels of
 # subgraphs. When you want a differently looking font in the dot files that
@@ -2931,6 +2940,58 @@ PLANTUML_INCLUDE_PATH  =
 
 PLANTUMLFILE_DIRS      =
 
+# When using Mermaid diagrams with CLI rendering, the MERMAID_PATH tag should be
+# used to specify the directory where the mmdc (Mermaid CLI) executable can be
+# found. If left blank, CLI-based rendering is disabled. For HTML output,
+# client-side rendering via JavaScript is used by default and does not require
+# mmdc. For LaTeX/PDF output, mmdc is required to pre-generate images. Doxygen
+# will generate a warning when CLI rendering is needed but mmdc is not
+# available.
+
+MERMAID_PATH           =
+
+# When using Mermaid diagrams, the MERMAID_CONFIG_FILE tag can be used to
+# specify a JSON configuration file for the Mermaid CLI tool (mmdc). This file
+# can contain theme settings and other Mermaid configuration options.
+
+MERMAID_CONFIG_FILE    =
+
+# The MERMAID_RENDER_MODE tag selects how Mermaid diagrams are rendered.
+# Possible values are: AUTO (use client-side rendering for HTML and mmdc for
+# LaTeX/PDF and other formats. If MERMAID_PATH is not set, non-HTML diagrams
+# will produce a warning), CLI (use the mmdc tool to pre-generate images
+# (requires Node.js and mermaid-js/mermaid-cli). Works for all output formats)
+# and CLIENT_SIDE (embed mermaid.js in HTML output for client-side rendering.
+# Does not require mmdc but only works for HTML output).
+# The default value is: AUTO.
+
+MERMAID_RENDER_MODE    = AUTO
+
+# The MERMAID_JS_URL tag specifies the URL to load mermaid.js from when using
+# client-side rendering (MERMAID_RENDER_MODE is CLIENT_SIDE or AUTO). The
+# default points to the latest Mermaid v11 release on the jsDelivr CDN.
+#
+# The default CDN URL requires internet access when viewing the generated
+# documentation. For offline use, download mermaid.esm.min.mjs and set this to a
+# relative path, or use MERMAID_RENDER_MODE=CLI to pre-generate images instead.
+# Examples:
+# - Latest v11 (default):
+# https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs
+# - Pinned version:
+# https://cdn.jsdelivr.net/npm/mermaid@11.3.0/dist/mermaid.esm.min.mjs
+# - Local copy: ./mermaid.esm.min.mjs (user must place file in HTML output
+# directory)
+# The default value is:
+# https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs.
+
+MERMAID_JS_URL         = https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs
+
+# The MERMAIDFILE_DIRS tag can be used to specify one or more directories that
+# contain Mermaid files that are included in the documentation (see the
+# \mermaidfile command).
+
+MERMAIDFILE_DIRS       =
+
 # The DOT_GRAPH_MAX_NODES tag can be used to set the maximum number of nodes
 # that will be shown in the graph. If the number of nodes in a graph becomes
 # larger than this value, Doxygen will truncate the graph, which is visualized
@@ -2954,15 +3015,6 @@ DOT_GRAPH_MAX_NODES    = 50
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 MAX_DOT_GRAPH_DEPTH    = 0
-
-# Set the DOT_MULTI_TARGETS tag to YES to allow dot to generate multiple output
-# files in one run (i.e. multiple -o and -T options on the command line). This
-# makes dot run faster, but since only newer versions of dot (>1.8.10) support
-# this, this feature is disabled by default.
-# The default value is: NO.
-# This tag requires that the tag HAVE_DOT is set to YES.
-
-DOT_MULTI_TARGETS      = NO
 
 # If the GENERATE_LEGEND tag is set to YES Doxygen will generate a legend page
 # explaining the meaning of the various boxes and arrows in the dot generated
