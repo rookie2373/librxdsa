@@ -1,6 +1,6 @@
 # Maintainer: Rushikesh Kundkar <rrkundkar777@gmail.com>
 pkgname=librxdsa
-pkgver=0.0.18
+pkgver=0.0.19
 pkgrel=1
 pkgdesc="Standalone and lightweight C algorithms library"
 arch=('x86_64' 'aarch64')
